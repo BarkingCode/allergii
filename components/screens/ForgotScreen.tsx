@@ -20,8 +20,16 @@ import { Input } from "../ui/Input";
 //this screen take a function from parent compontent to update a page state
 const ForgotScreen = ({ setPage }: { setPage: (page: PageState) => void }) => {
   const [disabled, setDisabled] = useState(true);
-  const { signin, user, error, setUserInput, userInput, loading, resetError } =
-    useAuth();
+  const {
+    user,
+    error,
+    setUserInput,
+    userInput,
+    loading,
+    resetError,
+    resetPassword,
+    resetEmailSent,
+  } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -57,13 +65,16 @@ const ForgotScreen = ({ setPage }: { setPage: (page: PageState) => void }) => {
             style={{ fontFamily: global.font.family.primary }}
           />
           {error && <Text>{error}</Text>}
+          {resetEmailSent && (
+            <Text>Password reset email sent! Check your inbox.</Text>
+          )}
         </Container>
         <Wrapper>
           <PrimaryButton
-            title="Reset Password"
+            title={resetEmailSent ? "Resend Email" : "Reset Password"}
             disabled={disabled}
             onPress={async () => {
-              //need to add a function to reset password
+              await resetPassword();
             }}
           />
           <DividerH />

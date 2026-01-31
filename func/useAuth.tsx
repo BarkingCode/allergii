@@ -9,12 +9,16 @@ import {
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   PhoneAuthProvider,
   GoogleAuthProvider,
   signInWithCredential,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
-import { addDoc, collection, doc, setDoc } from "firebase/firestore";
+import { addDoc, collection, doc, setDoc, deleteDoc, getDocs } from "firebase/firestore";
 import React, {
   createContext,
   useContext,
@@ -206,6 +210,27 @@ export const AuthProvider = ({ children }: any) => {
   };
 
   // ************************** PASSWORD RESET **************************
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  const resetPassword = async () => {
+    if (!userInput.email) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await sendPasswordResetEmail(FIREBASE_AUTH, userInput.email);
+      setResetEmailSent(true);
+      setError(null);
+    } catch (error: any) {
+      const errorMessage = await handleAuthError(error.code);
+      setError(errorMessage);
+      setResetEmailSent(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ************************** SIGN OUT **************************
   const signout = async () => {
@@ -214,6 +239,53 @@ export const AuthProvider = ({ children }: any) => {
     setUserInput({ email: "", password: "" });
     setUser(null);
     await FIREBASE_AUTH.signOut();
+  };
+
+  // ************************** DELETE ACCOUNT **************************
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+
+  const deleteAccount = async (password: string) => {
+    if (!user) {
+      setError("No user logged in");
+      return false;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Re-authenticate user before deletion (required by Firebase)
+      const credential = EmailAuthProvider.credential(user.email!, password);
+      await reauthenticateWithCredential(user, credential);
+
+      // Delete user's diary data subcollection
+      const dataCollectionRef = collection(FIREBASE_DB, `users/${user.uid}/data`);
+      const dataSnapshot = await getDocs(dataCollectionRef);
+      const deletePromises = dataSnapshot.docs.map((doc) => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+
+      // Delete user document
+      await deleteDoc(doc(FIREBASE_DB, `users/${user.uid}`));
+
+      // Delete Firebase auth account
+      await deleteUser(user);
+
+      // Clean up local storage
+      removeValue("@userDetails");
+      removeValue("@userPreferences");
+      setUser(null);
+      setUserInput({ email: "", password: "" });
+      setDeleteConfirmed(true);
+
+      return true;
+    } catch (error: any) {
+      console.error("Delete account error:", error);
+      const errorMessage = await handleAuthError(error.code);
+      setError(errorMessage || "Failed to delete account. Please try again.");
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const authContextValue: AuthContextType = {
@@ -227,6 +299,10 @@ export const AuthProvider = ({ children }: any) => {
     signout,
     resetError,
     signinWithGoogle,
+    resetPassword,
+    resetEmailSent,
+    deleteAccount,
+    deleteConfirmed,
   };
 
   return (
@@ -250,8 +326,11 @@ interface AuthContextType {
   loading: boolean;
   signup: () => Promise<void>;
   signin: () => Promise<void>;
-  // signinWithGoogle: () => Promise<void>;
   signout: () => Promise<void>;
   resetError: () => void;
   signinWithGoogle: () => Promise<void>;
+  resetPassword: () => Promise<void>;
+  resetEmailSent: boolean;
+  deleteAccount: (password: string) => Promise<boolean>;
+  deleteConfirmed: boolean;
 }

@@ -5,9 +5,11 @@ import styled from "styled-components";
 import { GlobalContext } from "../../../context/global";
 import { storeData } from "../../../func/storage";
 
-import { Text } from "@/components/ui/Typography";
+import { Text, Caption } from "@/components/ui/Typography";
 import { PageScrollView, View } from "@/components/ui/Containers";
 import { SegmentedControlComponent } from "@/components/ui/SegmentedControl";
+import { NavButton } from "@/components/ui/NavButton";
+import { DividerH } from "@/components/ui/Elements";
 import { UserContext } from "@/context/user";
 
 import { useAuth } from "@/func/useAuth";
@@ -29,9 +31,9 @@ const Setting = () => {
   return (
     <PageScrollView>
       <ViewContainer>
-        <Text>Temprature Type</Text>
+        <Text>Temperature Type</Text>
         <SegmentedControlComponent
-          values={["Censuis", "Farhenheit"]}
+          values={["Celsius", "Fahrenheit"]}
           selectedIndex={userState.settings.tempType}
           onChange={(result) => {
             userDispatch({
@@ -80,6 +82,27 @@ const Setting = () => {
           }}
         />
       </ViewContainer> */}
+
+      <DividerH />
+
+      <ViewContainer>
+        <Caption color="soft">Legal</Caption>
+        <NavButton url="/(tabs)/profile/terms" title="Terms of Service" />
+        <NavButton url="/(tabs)/profile/privacy" title="Privacy Policy" />
+      </ViewContainer>
+
+      {user && (
+        <>
+          <DividerH />
+          <ViewContainer>
+            <Caption color="soft">Danger Zone</Caption>
+            <NavButton
+              url="/(tabs)/profile/delete-account"
+              title="Delete Account"
+            />
+          </ViewContainer>
+        </>
+      )}
     </PageScrollView>
   );
 };

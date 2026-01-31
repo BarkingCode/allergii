@@ -14,19 +14,20 @@ import { useSubscribed } from "@/func/useSubscribed";
 
 const Diary = () => {
   const { state } = useContext(GlobalContext);
-  // const { subscribed } = useSubscribed();
+  const { subscribed, loading: subLoading } = useSubscribed();
   const { user } = useAuth();
 
-  if (state.loading) {
+  if (state.loading || subLoading) {
     return <Loading />;
   }
 
   if (!user) {
     return <AuthNavigator />;
   }
-  // else if (!subscribed) {
-  //   return <NoAccess />;
-  // }
+  
+  if (!subscribed) {
+    return <NoAccess />;
+  }
 
   return <DiaryDashboard />;
 };

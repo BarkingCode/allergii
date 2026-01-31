@@ -114,7 +114,7 @@ const HomePage = () => {
         <DayDetails day={day.day as DayType} />
         <DividerH />
       </Section>
-      {day.day.daily_will_it_rain === 1 && day.day.daily_will_it_snow === 1 && (
+      {(day.day.daily_will_it_rain === 1 || day.day.daily_will_it_snow === 1) && (
         <Section>
           <RainInfo
             chance_of_rain={day.day.daily_chance_of_rain}

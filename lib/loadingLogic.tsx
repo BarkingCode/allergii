@@ -28,7 +28,7 @@ const LoadingLogic = ({ children, complete }: any) => {
       try {
         if (userPreferences) {
           userDispatch({
-            type: "LOAD_DATA",
+            type: "LOAD_USER_PREFERENCES",
             payload: userPreferences,
           });
         }

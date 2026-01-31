@@ -14,6 +14,27 @@ export default function Layout() {
         }}
       />
       <Stack.Screen
+        name="terms"
+        options={{
+          title: "Terms of Service",
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen
+        name="privacy"
+        options={{
+          title: "Privacy Policy",
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen
+        name="delete-account"
+        options={{
+          title: "Delete Account",
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen
         name="(auth)/signin"
         options={{
           title: "Sign In",

@@ -32,9 +32,9 @@ const Providers = ({ children }: PropsWithChildren) => {
             {/* <NowAiContext.Provider value={{ nowAiState, nowAiDispatch }}> */}
             <ThemeProvider theme={state.dark ? dark : light}>
               {/* {state.notifications == 0 && <PushNotification />} */}
-              {/* <PurchaseProvider> */}
-              {children}
-              {/* </PurchaseProvider> */}
+              <PurchaseProvider>
+                {children}
+              </PurchaseProvider>
             </ThemeProvider>
             {/* </NowAiContext.Provider> */}
           </AuthProvider>

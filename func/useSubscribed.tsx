@@ -3,22 +3,26 @@ import Purchases, { CustomerInfo } from "react-native-purchases";
 import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 
 export const useSubscribed = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>();
 
   const CheckSubscriptionStatus = async () => {
+    setLoading(true);
     try {
-      const customerInfo = await Purchases.getCustomerInfo();
+      const info = await Purchases.getCustomerInfo();
+      setCustomerInfo(info);
 
-      setCustomerInfo(customerInfo);
-
-      // const isActive = customerInfo.entitlements.active["your_entitlement_id"] !== undefined;
-      // setIsSubscribed(isActive);
+      // Check if user has the "pro" entitlement
+      const isActive = info.entitlements.active["pro"] !== undefined;
+      setSubscribed(isActive);
     } catch (error) {
       console.error("Error fetching customer info", error);
+      // If RevenueCat fails, default to not subscribed
+      setSubscribed(false);
+    } finally {
+      setLoading(false);
     }
-    return;
   };
 
   const Display = async () => {
