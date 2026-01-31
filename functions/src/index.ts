@@ -1,140 +1,142 @@
-import * as functions from "firebase-functions";
+import { onRequest } from "firebase-functions/v2/https";
+import { Request, Response } from "express";
+import { defineSecret } from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import { Agent, run, tool } from "@openai/agents";
 import { z } from "zod";
+
+// Define secrets
+const openaiApiKey = defineSecret("OPENAI_API_KEY");
+const weatherApiKey = defineSecret("WEATHER_API_KEY");
+const googleApiKey = defineSecret("GOOGLE_API_KEY");
 
 // Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 
 // =============================================================================
-// TOOLS
+// AGENT FACTORY (creates agent with injected secrets)
 // =============================================================================
 
-const getCurrentConditions = tool({
-  name: "get_current_conditions",
-  description: "Get current weather, air quality, and pollen levels for a location",
-  parameters: z.object({
-    latitude: z.number().describe("Latitude of the location"),
-    longitude: z.number().describe("Longitude of the location"),
-  }),
-  execute: async ({ latitude, longitude }) => {
-    const weatherApiKey = process.env.WEATHER_API_KEY;
-    const googleKey = process.env.GOOGLE_API_KEY;
+function createAllergyAdvisor(weatherKey: string, googleKey: string) {
+  // Tool: Get current conditions
+  const getCurrentConditions = tool({
+    name: "get_current_conditions",
+    description: "Get current weather, air quality, and pollen levels for a location",
+    parameters: z.object({
+      latitude: z.number().describe("Latitude of the location"),
+      longitude: z.number().describe("Longitude of the location"),
+    }),
+    execute: async ({ latitude, longitude }) => {
+      // Fetch weather data
+      const weatherUrl = `https://api.weatherapi.com/v1/current.json?key=${weatherKey}&q=${latitude},${longitude}&aqi=yes`;
+      const weatherRes = await fetch(weatherUrl);
+      const weatherData = await weatherRes.json();
 
-    // Fetch weather data
-    const weatherUrl = `https://api.weatherapi.com/v1/current.json?key=${weatherApiKey}&q=${latitude},${longitude}&aqi=yes`;
-    const weatherRes = await fetch(weatherUrl);
-    const weatherData = await weatherRes.json();
+      // Fetch pollen data
+      const pollenUrl = `https://pollen.googleapis.com/v1/forecast:lookup?key=${googleKey}&location.latitude=${latitude}&location.longitude=${longitude}&days=1`;
+      const pollenRes = await fetch(pollenUrl);
+      const pollenData = await pollenRes.json();
 
-    // Fetch pollen data
-    const pollenUrl = `https://pollen.googleapis.com/v1/forecast:lookup?key=${googleKey}&location.latitude=${latitude}&location.longitude=${longitude}&days=1`;
-    const pollenRes = await fetch(pollenUrl);
-    const pollenData = await pollenRes.json();
+      // Fetch air quality
+      const aqUrl = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${googleKey}`;
+      const aqRes = await fetch(aqUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location: { latitude, longitude },
+          universalAqi: true,
+        }),
+      });
+      const aqData = await aqRes.json();
 
-    // Fetch air quality
-    const aqUrl = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${googleKey}`;
-    const aqRes = await fetch(aqUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        location: { latitude, longitude },
-        universalAqi: true,
-      }),
-    });
-    const aqData = await aqRes.json();
-
-    return {
-      weather: {
-        temp_c: weatherData.current?.temp_c,
-        humidity: weatherData.current?.humidity,
-        condition: weatherData.current?.condition?.text,
-        wind_kph: weatherData.current?.wind_kph,
-      },
-      airQuality: {
-        aqi: aqData.indexes?.[0]?.aqi,
-        category: aqData.indexes?.[0]?.category,
-        dominantPollutant: aqData.indexes?.[0]?.dominantPollutant,
-      },
-      pollen: pollenData.dailyInfo?.[0]?.pollenTypeInfo?.map((p: any) => ({
-        type: p.displayName,
-        level: p.indexInfo?.category,
-        inSeason: p.inSeason,
-      })),
-    };
-  },
-});
-
-const getForecast = tool({
-  name: "get_forecast",
-  description: "Get weather and pollen forecast for upcoming days",
-  parameters: z.object({
-    latitude: z.number(),
-    longitude: z.number(),
-    days: z.number().min(1).max(5).default(3),
-  }),
-  execute: async ({ latitude, longitude, days }) => {
-    const weatherApiKey = process.env.WEATHER_API_KEY;
-    const googleKey = process.env.GOOGLE_API_KEY;
-
-    const weatherUrl = `https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${latitude},${longitude}&days=${days}&aqi=yes`;
-    const weatherRes = await fetch(weatherUrl);
-    const weatherData = await weatherRes.json();
-
-    const pollenUrl = `https://pollen.googleapis.com/v1/forecast:lookup?key=${googleKey}&location.latitude=${latitude}&location.longitude=${longitude}&days=${days}`;
-    const pollenRes = await fetch(pollenUrl);
-    const pollenData = await pollenRes.json();
-
-    return {
-      forecast: weatherData.forecast?.forecastday?.map((day: any) => ({
-        date: day.date,
-        maxTemp: day.day.maxtemp_c,
-        minTemp: day.day.mintemp_c,
-        condition: day.day.condition?.text,
-        chanceOfRain: day.day.daily_chance_of_rain,
-        humidity: day.day.avghumidity,
-      })),
-      pollen: pollenData.dailyInfo?.map((day: any) => ({
-        date: `${day.date.year}-${day.date.month}-${day.date.day}`,
-        types: day.pollenTypeInfo?.map((p: any) => ({
+      return {
+        weather: {
+          temp_c: weatherData.current?.temp_c,
+          humidity: weatherData.current?.humidity,
+          condition: weatherData.current?.condition?.text,
+          wind_kph: weatherData.current?.wind_kph,
+        },
+        airQuality: {
+          aqi: aqData.indexes?.[0]?.aqi,
+          category: aqData.indexes?.[0]?.category,
+          dominantPollutant: aqData.indexes?.[0]?.dominantPollutant,
+        },
+        pollen: pollenData.dailyInfo?.[0]?.pollenTypeInfo?.map((p: any) => ({
           type: p.displayName,
           level: p.indexInfo?.category,
+          inSeason: p.inSeason,
         })),
-      })),
-    };
-  },
-});
+      };
+    },
+  });
 
-const getConversationHistory = tool({
-  name: "get_conversation_history",
-  description: "Get recent conversation history for context",
-  parameters: z.object({
-    deviceId: z.string(),
-    limit: z.number().min(1).max(20).default(10),
-  }),
-  execute: async ({ deviceId, limit }) => {
-    const messagesRef = db
-      .collection("conversations")
-      .doc(deviceId)
-      .collection("messages")
-      .orderBy("timestamp", "desc")
-      .limit(limit);
+  // Tool: Get forecast
+  const getForecast = tool({
+    name: "get_forecast",
+    description: "Get weather and pollen forecast for upcoming days",
+    parameters: z.object({
+      latitude: z.number(),
+      longitude: z.number(),
+      days: z.number().min(1).max(5).default(3),
+    }),
+    execute: async ({ latitude, longitude, days }) => {
+      const weatherUrl = `https://api.weatherapi.com/v1/forecast.json?key=${weatherKey}&q=${latitude},${longitude}&days=${days}&aqi=yes`;
+      const weatherRes = await fetch(weatherUrl);
+      const weatherData = await weatherRes.json();
 
-    const snapshot = await messagesRef.get();
-    const messages = snapshot.docs.map((doc) => doc.data()).reverse();
+      const pollenUrl = `https://pollen.googleapis.com/v1/forecast:lookup?key=${googleKey}&location.latitude=${latitude}&location.longitude=${longitude}&days=${days}`;
+      const pollenRes = await fetch(pollenUrl);
+      const pollenData = await pollenRes.json();
 
-    return { messages };
-  },
-});
+      return {
+        forecast: weatherData.forecast?.forecastday?.map((day: any) => ({
+          date: day.date,
+          maxTemp: day.day.maxtemp_c,
+          minTemp: day.day.mintemp_c,
+          condition: day.day.condition?.text,
+          chanceOfRain: day.day.daily_chance_of_rain,
+          humidity: day.day.avghumidity,
+        })),
+        pollen: pollenData.dailyInfo?.map((day: any) => ({
+          date: `${day.date.year}-${day.date.month}-${day.date.day}`,
+          types: day.pollenTypeInfo?.map((p: any) => ({
+            type: p.displayName,
+            level: p.indexInfo?.category,
+          })),
+        })),
+      };
+    },
+  });
 
-// =============================================================================
-// AGENT DEFINITION
-// =============================================================================
+  // Tool: Get conversation history
+  const getConversationHistory = tool({
+    name: "get_conversation_history",
+    description: "Get recent conversation history for context",
+    parameters: z.object({
+      deviceId: z.string(),
+      limit: z.number().min(1).max(20).default(10),
+    }),
+    execute: async ({ deviceId, limit }) => {
+      const messagesRef = db
+        .collection("conversations")
+        .doc(deviceId)
+        .collection("messages")
+        .orderBy("timestamp", "desc")
+        .limit(limit);
 
-const allergyAdvisor = new Agent({
-  name: "AllergyAdvisor",
-  model: "gpt-4o-mini",
-  instructions: `You are AllergyAdvisor, a specialized assistant for people with allergies and weather sensitivities.
+      const snapshot = await messagesRef.get();
+      const messages = snapshot.docs.map((doc) => doc.data()).reverse();
+
+      return { messages };
+    },
+  });
+
+  // Create and return the agent
+  return new Agent({
+    name: "AllergyAdvisor",
+    model: "gpt-4o-mini",
+    instructions: `You are AllergyAdvisor, a specialized assistant for people with allergies and weather sensitivities.
 
 Your expertise:
 - Seasonal allergies (pollen, grass, trees, weeds)
@@ -159,125 +161,149 @@ Never:
 - Diagnose conditions
 - Recommend specific medications by name
 - Provide medical treatment plans`,
-  tools: [getCurrentConditions, getForecast, getConversationHistory],
-});
+    tools: [getCurrentConditions, getForecast, getConversationHistory],
+  });
+}
 
 // =============================================================================
 // API ENDPOINTS
 // =============================================================================
 
-// Health check
-export const health = functions.https.onRequest((req, res) => {
+// Health check (no secrets needed)
+export const health = onRequest((req: Request, res: Response) => {
   res.json({ status: "ok", agent: "AllergyAdvisor", version: "1.0.0" });
 });
 
 // Chat endpoint
-export const chat = functions.https.onRequest(async (req, res) => {
-  // CORS
-  res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.set("Access-Control-Allow-Headers", "Content-Type");
+export const chat = onRequest(
+  { secrets: [openaiApiKey, weatherApiKey, googleApiKey] },
+  async (req: Request, res: Response) => {
+    // CORS
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
-  }
-
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  try {
-    const { deviceId, message, location } = req.body;
-
-    if (!deviceId || !message) {
-      res.status(400).json({ error: "deviceId and message are required" });
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
       return;
     }
 
-    // Store user message
-    const userMessageRef = db
-      .collection("conversations")
-      .doc(deviceId)
-      .collection("messages")
-      .doc();
-
-    await userMessageRef.set({
-      role: "user",
-      content: message,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      location: location || null,
-    });
-
-    // Build context
-    let contextMessage = message;
-    if (location) {
-      contextMessage = `[User location: ${location.latitude}, ${location.longitude}]\n\n${message}`;
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
     }
 
-    // Run agent
-    const result = await run(allergyAdvisor, contextMessage);
-    const response = result.finalOutput as string;
+    try {
+      const { deviceId, message, location } = req.body;
 
-    // Store assistant response
-    const assistantMessageRef = db
-      .collection("conversations")
-      .doc(deviceId)
-      .collection("messages")
-      .doc();
+      if (!deviceId || !message) {
+        res.status(400).json({ error: "deviceId and message are required" });
+        return;
+      }
 
-    await assistantMessageRef.set({
-      role: "assistant",
-      content: response,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      // Set OpenAI API key for the agent
+      process.env.OPENAI_API_KEY = openaiApiKey.value();
 
-    // Update metadata
-    await db.collection("conversations").doc(deviceId).set(
-      {
-        lastActive: admin.firestore.FieldValue.serverTimestamp(),
-        messageCount: admin.firestore.FieldValue.increment(2),
-      },
-      { merge: true }
-    );
+      // Create agent with secrets
+      const agent = createAllergyAdvisor(
+        weatherApiKey.value(),
+        googleApiKey.value()
+      );
 
-    res.json({
-      response,
-      deviceId,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("Chat error:", error);
-    res.status(500).json({ error: "Internal server error" });
+      // Store user message
+      const userMessageRef = db
+        .collection("conversations")
+        .doc(deviceId)
+        .collection("messages")
+        .doc();
+
+      await userMessageRef.set({
+        role: "user",
+        content: message,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        location: location || null,
+      });
+
+      // Build context
+      let contextMessage = message;
+      if (location) {
+        contextMessage = `[User location: ${location.latitude}, ${location.longitude}]\n\n${message}`;
+      }
+
+      // Run agent
+      const result = await run(agent, contextMessage);
+      const response = result.finalOutput as string;
+
+      // Store assistant response
+      const assistantMessageRef = db
+        .collection("conversations")
+        .doc(deviceId)
+        .collection("messages")
+        .doc();
+
+      await assistantMessageRef.set({
+        role: "assistant",
+        content: response,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Update metadata
+      await db.collection("conversations").doc(deviceId).set(
+        {
+          lastActive: admin.firestore.FieldValue.serverTimestamp(),
+          messageCount: admin.firestore.FieldValue.increment(2),
+        },
+        { merge: true }
+      );
+
+      res.json({
+        response,
+        deviceId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Chat error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
-});
+);
 
 // Get advice endpoint (structured output)
-export const advice = functions.https.onRequest(async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.set("Access-Control-Allow-Headers", "Content-Type");
+export const advice = onRequest(
+  { secrets: [openaiApiKey, weatherApiKey, googleApiKey] },
+  async (req: Request, res: Response) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
-  }
-
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  try {
-    const { deviceId, latitude, longitude, context } = req.body;
-
-    if (!latitude || !longitude) {
-      res.status(400).json({ error: "latitude and longitude are required" });
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
       return;
     }
 
-    const prompt = `Based on the current conditions at location (${latitude}, ${longitude}), provide allergy advice.
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { deviceId, latitude, longitude, context } = req.body;
+
+      if (!latitude || !longitude) {
+        res.status(400).json({ error: "latitude and longitude are required" });
+        return;
+      }
+
+      // Set OpenAI API key for the agent
+      process.env.OPENAI_API_KEY = openaiApiKey.value();
+
+      // Create agent with secrets
+      const agent = createAllergyAdvisor(
+        weatherApiKey.value(),
+        googleApiKey.value()
+      );
+
+      const prompt = `Based on the current conditions at location (${latitude}, ${longitude}), provide allergy advice.
 ${context ? `Additional context: ${context}` : ""}
 
 Please respond with:
@@ -286,17 +312,18 @@ Please respond with:
 3. Up to 5 actionable recommendations
 4. Any relevant triggers to be aware of`;
 
-    const result = await run(allergyAdvisor, prompt);
-    const response = result.finalOutput as string;
+      const result = await run(agent, prompt);
+      const response = result.finalOutput as string;
 
-    res.json({
-      advice: response,
-      deviceId: deviceId || "anonymous",
-      location: { latitude, longitude },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("Advice error:", error);
-    res.status(500).json({ error: "Internal server error" });
+      res.json({
+        advice: response,
+        deviceId: deviceId || "anonymous",
+        location: { latitude, longitude },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Advice error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
-});
+);
