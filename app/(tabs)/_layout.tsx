@@ -12,6 +12,8 @@ import { UserActiveIcon } from "@/assets/icons/navigation/userActive";
 import { UserIcon } from "@/assets/icons/navigation/user";
 import { DiaryActiveIcon } from "@/assets/icons/navigation/diaryActive";
 import { DiaryIcon } from "@/assets/icons/navigation/diary";
+import { ChatIcon } from "@/assets/icons/navigation/chat";
+import { ChatActiveIcon } from "@/assets/icons/navigation/chatActive";
 
 export default function TabLayout() {
   const { state } = useContext(GlobalContext);
@@ -68,6 +70,20 @@ export default function TabLayout() {
               return <DailyActiveIcon color={tabSelectedIconColor} />;
             } else {
               return <DailyIcon color={tabIconColor} />;
+            }
+          },
+        }}
+      />
+
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: "Chat",
+          tabBarIcon: ({ focused }) => {
+            if (focused) {
+              return <ChatActiveIcon color={tabSelectedIconColor} />;
+            } else {
+              return <ChatIcon color={tabIconColor} />;
             }
           },
         }}
