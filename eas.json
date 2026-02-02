@@ -6,25 +6,6 @@
     "dev": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_WEATHER_API_URL": "8525ae2e888e42d3900195557242703",
-        "EXPO_PUBLIC_PROJECT_ID": "f43b43c9-e8ea-4612-b835-fb4f51ab6222",
-        "EXPO_PUBLIC_OPEN_API": "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",
-        "EXPO_PUBLIC_GOOGLE_KEY": "AIzaSyCrdz4AhbbXLqN5RtbVFTiQqC8TBN_w7_o",
-        "EXPO_PUBLIC_GOOGLEAUTH_IOS": "708521608315-dpvujm2gtf6cc68d4aalgmc9pklmh8ki.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLEAUTH_ANDROID": "708521608315-ipl11fin78il1ea0mtudgqiu963gtbu7.apps.googleusercontent.com",
-        "EXPO_PUBLIC_APIKEY": "AIzaSyCVlMRJ7fomgbrn_61f7GqyfMa8Xkn_Gbg",
-        "EXPO_PUBLIC_AUTHDOMAIN": "w-allergy.firebaseapp.com",
-        "EXPO_PUBLIC_PROJECTID": "w-allergy",
-        "EXPO_PUBLIC_STORAGEBUCKET": "w-allergy.appspot.com",
-        "EXPO_PUBLIC_MESSAGINGSENDERID": "1043474256874",
-        "EXPO_PUBLIC_APPID": "1:1043474256874:web:13cd5e93890a71645b9893",
-        "EXPO_PUBLIC_MEASUREMENTID": "G-HEQFTS8NNG",
-        "EXPO_PUBLIC_REVENUECATIOS": "appl_UHYFTJuGENSEelpXdtpmicztcAx",
-        "EXPO_PUBLIC_REVENUECATANDROID": "appl_UHYFTJuGENSEelpXdtpmicztcAx",
-        "APP_ENV": "development",
-        "APP_VARIANT": "development"
-      },
       "channel": "development"
     },
     "dev-sim": {
@@ -40,49 +21,11 @@
     },
     "prev": {
       "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_WEATHER_API_URL": "8525ae2e888e42d3900195557242703",
-        "EXPO_PUBLIC_PROJECT_ID": "f43b43c9-e8ea-4612-b835-fb4f51ab6222",
-        "EXPO_PUBLIC_OPEN_API": "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",
-        "EXPO_PUBLIC_GOOGLE_KEY": "AIzaSyCrdz4AhbbXLqN5RtbVFTiQqC8TBN_w7_o",
-        "EXPO_PUBLIC_GOOGLEAUTH_IOS": "708521608315-dpvujm2gtf6cc68d4aalgmc9pklmh8ki.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLEAUTH_ANDROID": "708521608315-ipl11fin78il1ea0mtudgqiu963gtbu7.apps.googleusercontent.com",
-        "EXPO_PUBLIC_APIKEY": "AIzaSyCVlMRJ7fomgbrn_61f7GqyfMa8Xkn_Gbg",
-        "EXPO_PUBLIC_AUTHDOMAIN": "w-allergy.firebaseapp.com",
-        "EXPO_PUBLIC_PROJECTID": "w-allergy",
-        "EXPO_PUBLIC_STORAGEBUCKET": "w-allergy.appspot.com",
-        "EXPO_PUBLIC_MESSAGINGSENDERID": "1043474256874",
-        "EXPO_PUBLIC_APPID": "1:1043474256874:web:13cd5e93890a71645b9893",
-        "EXPO_PUBLIC_MEASUREMENTID": "G-HEQFTS8NNG",
-        "EXPO_PUBLIC_REVENUECATIOS": "appl_UHYFTJuGENSEelpXdtpmicztcAx",
-        "EXPO_PUBLIC_REVENUECATANDROID": "appl_UHYFTJuGENSEelpXdtpmicztcAx",
-        "APP_ENV": "preview",
-        "APP_VARIANT": "preview"
-      },
       "channel": "preview"
     },
     "prod": {
       "channel": "production",
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_WEATHER_API_URL": "8525ae2e888e42d3900195557242703",
-        "EXPO_PUBLIC_PROJECT_ID": "f43b43c9-e8ea-4612-b835-fb4f51ab6222",
-        "EXPO_PUBLIC_OPEN_API": "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",
-        "EXPO_PUBLIC_GOOGLE_KEY": "AIzaSyCrdz4AhbbXLqN5RtbVFTiQqC8TBN_w7_o",
-        "EXPO_PUBLIC_GOOGLEAUTH_IOS": "708521608315-dpvujm2gtf6cc68d4aalgmc9pklmh8ki.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLEAUTH_ANDROID": "708521608315-ipl11fin78il1ea0mtudgqiu963gtbu7.apps.googleusercontent.com",
-        "EXPO_PUBLIC_APIKEY": "AIzaSyCVlMRJ7fomgbrn_61f7GqyfMa8Xkn_Gbg",
-        "EXPO_PUBLIC_AUTHDOMAIN": "w-allergy.firebaseapp.com",
-        "EXPO_PUBLIC_PROJECTID": "w-allergy",
-        "EXPO_PUBLIC_STORAGEBUCKET": "w-allergy.appspot.com",
-        "EXPO_PUBLIC_MESSAGINGSENDERID": "1043474256874",
-        "EXPO_PUBLIC_APPID": "1:1043474256874:web:13cd5e93890a71645b9893",
-        "EXPO_PUBLIC_MEASUREMENTID": "G-HEQFTS8NNG",
-        "EXPO_PUBLIC_REVENUECATIOS": "appl_UHYFTJuGENSEelpXdtpmicztcAx",
-        "EXPO_PUBLIC_REVENUECATANDROID": "appl_UHYFTJuGENSEelpXdtpmicztcAx",
-        "APP_ENV": "production",
-        "APP_VARIANT": "production"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
